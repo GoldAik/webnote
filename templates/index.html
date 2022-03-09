@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <link rel="stylesheet" href="{{ url_for('static', filename='main.css')}}">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
     
 
     <title>WebNote</title>
@@ -15,6 +16,7 @@
         <div class="title">
             Note in your browser :)
         </div>
+        <button>SEND</button>
     </nav>
     <div class="main-app">
 
@@ -30,5 +32,6 @@
     </div>
 
     <script src="{{ url_for('static', filename='main.js')}}"></script>
+    <script src="{{ url_for('static', filename='server_client_handler.js')}}"></script>
 </body>
 </html>
