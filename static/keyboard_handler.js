@@ -17,9 +17,8 @@ const shortcutHandler = () =>{
 const pressKey = (e) =>{
     let key = e.key
 
-    if(pressedKeys.includes(key)) return
+    if(!pressedKeys.includes(key)) pressedKeys.push(key) // pressing by time
     
-    pressedKeys.push(key)
     shortcutHandler()
 }
 
