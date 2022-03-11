@@ -2,37 +2,47 @@ const canvasParent = document.getElementById("main")
 const canvas = document.getElementById("canvas")
 let context = canvas.getContext("2d")
 
+const config = {
+    frequencySync: 5
+}
+
+let toSync = config.frequencySync
+
 let backgroundColor = "white"
 let color = "black"
-let size = 10
+let size = 5
 
 let isTouching = false
 
-let previusStorage = new Array()
-let nextStorage = new Array()
-
 let storage = {
-    previusStorage: new Array(),
-    nextStorage: new Array()
+    previusImage: new Array(),
+    currentImage: null,
+    nextImage: new Array()
 }
 
 
-const getPointX = (e) => e.clientX - canvas.offsetLeft
-const getPointY = (e) => e.clientY - canvas.offsetTop
+const getPointX = (e) => {
+    if(e instanceof TouchEvent){
+        return e.touches[0].clientX - canvas.offsetLeft
+    }else if(e instanceof MouseEvent){
+        return e.clientX - canvas.offsetLeft
+    }
+}
+const getPointY = (e) => 
+{
+    if(e instanceof TouchEvent){
+        return e.touches[0].clientY - canvas.offsetTop
+    }else if(e instanceof MouseEvent){
+        return e.clientY - canvas.offsetTop
+    }
+}
+
 
 const beforeDraw = (e) => {
-    console.log(`Begining draw`)
     isTouching = true
 
     context.beginPath()
     context.moveTo(getPointX(e), getPointY(e))
-    e.preventDefault()
-}
-
-
-const draw = (e) => {
-    if(!isTouching) return
-    console.log(`Drawing with color: ${color} and size: ${size}`)
 
     context.lineTo(getPointX(e), getPointY(e))
     context.strokeStyle = color
@@ -45,51 +55,80 @@ const draw = (e) => {
 }
 
 
-const stopDraw = () => {
-    console.log(`Drawing was stoped`)
+const draw = (e) => {
+    if(!isTouching) return
+    console.log(`X:${getPointX(e)} Y:${getPointY(e)}`)
+
+    context.lineTo(getPointX(e), getPointY(e))
+    context.strokeStyle = color
+    context.lineWidth = size
+    context.lineCap = "round"
+    context.lineJoin = "round"
+    context.stroke()
+
+    e.preventDefault()
+}
+
+
+const stopDraw = (e) => {
     if(!isTouching) return
 
     context.closePath()
     isTouching = false
 
     saveToStorage()
+
+    e.preventDefault()
 }
 
 
 const undo = () => {
-    if(previusStorage.length == 0) return
+    if(storage.previusImage.length == 0) return
 
-    presentCanvasImage = context.getImageData(0, 0, canvas.width, canvas.height)
-    nextStorage.push(presentCanvasImage)
+    let presentCanvasImage = context.getImageData(0, 0, canvas.width, canvas.height)
+    storage.nextImage.push(presentCanvasImage)
 
-    lastCanvasImage = previusStorage.pop()
+    let lastCanvasImage = storage.previusImage.pop()
     context.putImageData(lastCanvasImage, 0, 0)
 }
 
 
 const next = () => {
-    if(nextStorage.length == 0) return
+    if(storage.nextImage.length == 0) return
 
-    presentCanvasImage = context.getImageData(0, 0, canvas.width, canvas.height)
-    previusStorage.push(presentCanvasImage)
+    let presentCanvasImage = context.getImageData(0, 0, canvas.width, canvas.height)
+    storage.previusImage.push(presentCanvasImage)
 
-    lastCanvasImage = nextStorage.pop()
+    let lastCanvasImage = storage.nextImage.pop()
     context.putImageData(lastCanvasImage, 0, 0)
 }
 
 
 const saveToStorage = () => {
-    imageCanvas = context.getImageData(0, 0, canvas.width, canvas.height)
-    previusStorage.push(imageCanvas)
-    nextStorage = []
+    let imageCanvas = context.getImageData(0, 0, canvas.width, canvas.height)
+    if(storage.currentImage) storage.previusImage.push(storage.currentImage)
+    storage.currentImage = imageCanvas
+    
+    storage.nextImage = []
+
+    toSync--
+    if(toSync == 0){
+        sendData(storage.currentImage)
+        toSync = config.frequencySync
+    }
+}
+
+const clearStorage = () => {
+    storage.previusImage = []
+    storage.nextImage = []
 }
 
 
 const clearCanvas = () =>{
-    saveToStorage()
-
     context.fillStyle = backgroundColor
     context.fillRect(0, 0, canvas.width, canvas.height)
+
+    saveToStorage()
 }
 
 
@@ -100,8 +139,12 @@ const resizeCanvas = () => {
     canvas.width = getWidth()
     canvas.height = getHeight()
 
-    console.log(`resize ${canvas.width} | ${canvas.height}`)
+    if(!storage.currentImage) {
+        clearCanvas()
+        clearStorage()
+    }
 
+    context.putImageData(storage.currentImage, 0, 0)
 }
 
 
@@ -117,6 +160,8 @@ const init = () =>{
 
     resizeCanvas()
     clearCanvas()
+
+    toSync = config.frequencySync
 
     window.addEventListener('resize', resizeCanvas, false)
 }
