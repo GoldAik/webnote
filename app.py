@@ -1,10 +1,11 @@
-from flask import Flask, render_template, request, jsonify
-from PIL import Image
+from flask import Flask, render_template, request, jsonify, send_from_directory, Response
+import os
 
 app = Flask(__name__, static_folder='static', template_folder='templates')
+UPLOADS_DIR = os.path.join(app.root_path, "uploads")
 
-images_previus = []
-images_next = []
+os.makedirs(UPLOADS_DIR, exist_ok=True)
+path = os.path.join(UPLOADS_DIR, "image.png")
 
 
 @app.route("/", methods=['GET', "POST"])
@@ -16,62 +17,66 @@ def index():
 def get_data():
     results = {'processed': 'true'}
 
-    receive_data = request.get_json(force=True)
-    print('receive data from client:', receive_data)
-
-    image = receive_data.get("image", None)
-
-    if image != None:
-        images_previus.append(image)
+    receive_image = request.files.get("image", None)
+    receive_image.save(path)
 
     return jsonify(results)
 
 
-@app.route("/get_last_job", methods=['POST',])
+@app.route("/get_last_job/<path:path>", methods=['POST', 'GET'])
+def send_image(path: str):
+    if path.endswith(".png"):
+        return send_from_directory(directory=UPLOADS_DIR, path=path)
+    return Response(status=500)
+
+
+@app.route("/get_last_job", methods=['POST'])
 def send_data():
     results = {'processed': 'true'}
-    results += {'retuned': 0}
-
-    receive_data = request.get_json(force=True)
-    count = receive_data.get("count", 0)
-
-    if count == 0:
-        pass
-    
-    if count >= len(images_previus):
-        images_return = images_previus
-        get_undos(images_return)
-        
-        results += {'images_previus': images_return}
-        results['returned'] = len(images_return)
-
-    if count < len(images_previus):
-        images_return = images_previus[:count]
-        get_undos(images_return)
-        
-        results += {'images_previus': images_return}
-        results['returned'] = len(images_return)
 
     return jsonify(results)
 
 
-def get_undos(images_returned):
-    images_previus -= images_returned
-    images_next += images_returned
-
-@app.route("/save", methods=['GET','POST'])
+@app.route("/save", methods=['POST'])
 def save_job():
-    results = {'processed': 'true'}
-    results += {'saved': 'false'}
+    results = {'processed': True}
 
-    for index in range(len(images_previus)):
-        try:
-            img = Image.open(images_previus[index])
-            img.save(f"./database/{index}.jpg")
+    filename = "a.wne"
+    path = os.path.join(UPLOADS_DIR, filename)
 
-            results["saved"] = 'true'
-        except:
-            pass
+    return jsonify(results)
+
+
+@app.route("/set-workspace", methods=['POST'])
+def set_workspace():
+    results = {'processed': True}
+
+    data = request.get_json(force=True)
+
+    brush_type = data.get("brush_type", None)
+    brush_size = data.get("brush_size", None)
+    brush_color = data.get("brush_color", None)
+
+    request.cookies.add('brush_type', brush_type)
+    request.cookies.add('brush_size', brush_size)
+    request.cookies.add('brush_color', brush_color)
+
+    return jsonify(results)
+
+
+@app.route("/get-workspace", methods=['POST'])
+def get_workspace():
+    results = {'processed': True}
+
+    data = request.get_json(force=True)
+
+    brush_type = request.cookies.get('brush_type', None)
+    brush_size = request.cookies.get('brush_size', None)
+    brush_color = request.cookies.get('brush_color', None)
+
+    results['brush_type'] = brush_type
+    results['brush_size'] = brush_size
+    results['brush_color'] = brush_color
 
     return jsonify(results)
 

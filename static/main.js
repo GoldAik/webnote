@@ -3,7 +3,9 @@ const canvas = document.getElementById("canvas")
 let context = canvas.getContext("2d")
 
 const config = {
-    frequencySync: 5
+    frequencySync: 5,
+    frequencyTimeSync: 5000 // miliseconds
+    
 }
 
 let toSync = config.frequencySync
@@ -15,9 +17,8 @@ let size = 5
 let isTouching = false
 
 let storage = {
-    previusImage: new Array(),
-    currentImage: null,
-    nextImage: new Array()
+    images: new Array,
+    pointer: -1
 }
 
 
@@ -83,23 +84,17 @@ const stopDraw = (e) => {
 
 
 const undo = () => {
-    if(storage.previusImage.length == 0) return
+    if(storage.pointer <= 0) return
 
-    let presentCanvasImage = context.getImageData(0, 0, canvas.width, canvas.height)
-    storage.nextImage.push(presentCanvasImage)
-
-    let lastCanvasImage = storage.previusImage.pop()
+    let lastCanvasImage = storage.images[--storage.pointer]
     context.putImageData(lastCanvasImage, 0, 0)
 }
 
 
 const next = () => {
-    if(storage.nextImage.length == 0) return
+    if(storage.pointer + 1 >= storage.images.length) return
 
-    let presentCanvasImage = context.getImageData(0, 0, canvas.width, canvas.height)
-    storage.previusImage.push(presentCanvasImage)
-
-    let lastCanvasImage = storage.nextImage.pop()
+    let lastCanvasImage = storage.images[++storage.pointer]
     context.putImageData(lastCanvasImage, 0, 0)
 }
 
@@ -107,28 +102,32 @@ const next = () => {
 const saveToStorage = () => {
     let imageCanvas = context.getImageData(0, 0, canvas.width, canvas.height)
     if(storage.currentImage) storage.previusImage.push(storage.currentImage)
-    storage.currentImage = imageCanvas
-    
-    storage.nextImage = []
+
+    storage.images.push(imageCanvas)
+    storage.pointer++
+
+    if(storage.images.length - 1 > storage.pointer){
+        storage.images.pop()
+    }
 
     toSync--
     if(toSync == 0){
-        sendData(storage.currentImage)
+        sendData(storage.images[storage.pointer])
         toSync = config.frequencySync
     }
 }
 
 const clearStorage = () => {
-    storage.previusImage = []
-    storage.nextImage = []
+    
 }
 
 
-const clearCanvas = () =>{
+const clearCanvas = (save = true) =>{
     context.fillStyle = backgroundColor
     context.fillRect(0, 0, canvas.width, canvas.height)
 
-    saveToStorage()
+    if(save)
+        saveToStorage()
 }
 
 
@@ -139,12 +138,23 @@ const resizeCanvas = () => {
     canvas.width = getWidth()
     canvas.height = getHeight()
 
-    if(!storage.currentImage) {
-        clearCanvas()
-        clearStorage()
+    clearCanvas(save=false)
+
+    if(storage.pointer >= 0)
+        context.putImageData(storage.images[storage.pointer], 0, 0)
+}
+
+
+const syncWithServerEverySomeTime = (time = 5000) => {
+    if(toSync == config.frequencySync){
+        setTimeout(syncWithServerEverySomeTime, time, time);
+        return
     }
 
-    context.putImageData(storage.currentImage, 0, 0)
+    sendData(storage.images[storage.pointer])
+    toSync = config.frequencySync
+
+    setTimeout(syncWithServerEverySomeTime, time, time);
 }
 
 
@@ -162,6 +172,7 @@ const init = () =>{
     clearCanvas()
 
     toSync = config.frequencySync
+    syncWithServerEverySomeTime(config.frequencyTimeSync)
 
     window.addEventListener('resize', resizeCanvas, false)
 }

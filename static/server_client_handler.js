@@ -1,17 +1,18 @@
-var testObjectData = 
-    { 
-        Username: "Jan" ,
-        Lastname: "Kowalski" 
-    };
+const sendData = async (objectData = null) => {
+    let imageBlob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'))
     
-const sendData = (objectData) => {
+    let formData = new FormData()
+    formData.append("image", imageBlob, "image.png")
+
+    console.log(formData)
+
+
     $.ajax({
         type: "POST",
         url: "/send_last_job",
-        contentType : 'application/json',
-        dataType : 'json',
-
-        data: JSON.stringify(objectData),
+        processData: false,
+        contentType: false,
+        data: formData,
         success: function (data) {
            console.log(data)
         },
@@ -21,21 +22,29 @@ const sendData = (objectData) => {
     });
 }
 
-const getData = (count = 1) => {
+const getData = () => {
+    let image = new Image()
+    image.src = "/get_last_job/image.png"
+    image.onload = () => {
+        context.drawImage(image, 0, 0)
+    };
+
+    let data = {
+        request: ["brushSize", "brushColor"]
+    }
+
     $.ajax({
         type: "POST",
         url: "/get_last_job",
-        contentType : 'application/json',
-        dataType : 'json',
-
-        data: JSON.stringify({ count: count }),
+        contentType: "json",
+        data: data,
         success: function (data) {
-           console.log(data["processed"])
+            if(data["processed"]){
+                console.log(data)
+            }
         },
         error: function () {
             console.log("Error")
         }
     });
 }
-
-document.getElementsByTagName('button')[0].addEventListener('click', () => {sendData(testObjectData)}, false)
