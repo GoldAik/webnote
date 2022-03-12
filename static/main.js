@@ -11,43 +11,71 @@ const config = {
 let toSync = config.frequencySync
 
 let backgroundColor = "white"
-let color = "black"
-let size = 5
+
+let brushColor = "black"
+let brushSize = 5
+let brushType = "normal"
 
 let isTouching = false
+let canStartDraw = true
 
 let storage = {
     images: new Array,
     pointer: -1
 }
 
+const setBrush = (brushColor = brushColor, brushSize = brushSize, brushType = brushType) =>{
+    brushColor = brushColor
+    brushSize = brushSize
+    brushType = brushType
+}
 
-const getPointX = (e) => {
+
+const makeLargerBrushSize = () =>{
+    brushSize++
+}
+
+const makeSmallerBrushSize = () =>{
+    brushSize--
+}
+
+const setBrushColor = (e) =>{
+    brushColor = e.value
+}
+
+const setBrushSize = (e) =>{
+    brushSize = e.value
+}
+
+
+const getPointX = (e, object = canvas) => {
     if(e instanceof TouchEvent){
-        return e.touches[0].clientX - canvas.offsetLeft
+        return e.touches[0].clientX - object.offsetLeft
     }else if(e instanceof MouseEvent){
-        return e.clientX - canvas.offsetLeft
+        return e.clientX - object.offsetLeft
     }
 }
-const getPointY = (e) => 
+const getPointY = (e, object = canvas) => 
 {
     if(e instanceof TouchEvent){
-        return e.touches[0].clientY - canvas.offsetTop
+        return e.touches[0].clientY - object.offsetTop
     }else if(e instanceof MouseEvent){
-        return e.clientY - canvas.offsetTop
+        return e.clientY - object.offsetTop
     }
 }
 
 
 const beforeDraw = (e) => {
+    if(!canStartDraw) return
+
     isTouching = true
 
     context.beginPath()
     context.moveTo(getPointX(e), getPointY(e))
 
     context.lineTo(getPointX(e), getPointY(e))
-    context.strokeStyle = color
-    context.lineWidth = size
+    context.strokeStyle = brushColor
+    context.lineWidth = brushSize
     context.lineCap = "round"
     context.lineJoin = "round"
     context.stroke()
@@ -58,11 +86,10 @@ const beforeDraw = (e) => {
 
 const draw = (e) => {
     if(!isTouching) return
-    console.log(`X:${getPointX(e)} Y:${getPointY(e)}`)
 
     context.lineTo(getPointX(e), getPointY(e))
-    context.strokeStyle = color
-    context.lineWidth = size
+    context.strokeStyle = brushColor
+    context.lineWidth = brushSize
     context.lineCap = "round"
     context.lineJoin = "round"
     context.stroke()
@@ -101,14 +128,13 @@ const next = () => {
 
 const saveToStorage = () => {
     let imageCanvas = context.getImageData(0, 0, canvas.width, canvas.height)
-    if(storage.currentImage) storage.previusImage.push(storage.currentImage)
+
+    while(storage.images.length - 1 > storage.pointer){
+        storage.images.pop()
+    }
 
     storage.images.push(imageCanvas)
     storage.pointer++
-
-    if(storage.images.length - 1 > storage.pointer){
-        storage.images.pop()
-    }
 
     toSync--
     if(toSync == 0){
