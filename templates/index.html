@@ -6,8 +6,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <link rel="stylesheet" href="{{ url_for('static', filename='main.css')}}">
+
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
-    
 
     <title>WebNote</title>
 </head>
@@ -16,20 +16,28 @@
         <div class="title">
             Note in your browser :)
         </div>
-        <button>SEND</button>
     </nav>
-    <div class="main-app">
+    <div class="main-app" id="container">
 
-        <div class="left-bar">
+        <div class="left-bar" id="leftBar">
+            <button onclick="expandShrinkSwitcher(this)"> Roll up </button>
+
+            <input type="color" id="colorPicker" onchange="setBrushColor(this)">
+            <input type="number" onchange="setBrushSize(this)">
+
         </div>
         <main id="main" class="main">
             <canvas class="canvas" id="canvas">
                 
             </canvas>
         </main>
-        <div class="right-bar"></div>
+        <div class="right-bar" id="rightBar">
+            <button onclick="expandShrinkSwitcher(this)"> Roll up </button>
 
+        </div>
     </div>
+
+    <script src="{{ url_for('static', filename='user-interface.js')}}"></script>
 
     <script src="{{ url_for('static', filename='main.js')}}"></script>
     <script src="{{ url_for('static', filename='keyboard_handler.js')}}"></script>
